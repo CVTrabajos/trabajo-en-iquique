@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trabajo en CIUDAD_NOMBRE | Ofertas Laborales Actualizadas</title>
-<meta name="description" content="Portal de ofertas de empleo y vacantes laborales en la Ciudad de CIUDAD_NOMBRE y REGION_NOMBRE.">
+<title>Trabajo en Iquique | Ofertas Laborales Actualizadas</title>
+<meta name="description" content="Portal de ofertas de empleo y vacantes laborales en la Ciudad de Iquique y Región de Tarapacá.">
 <style>
 :root{--primary:#1565D8;--bg:#F4F6F9;--card:#fff;--text:#1E293B;--muted:#64748B;--border:#E2E8F0}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -48,8 +48,8 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 <body>
 <header>
   <div class="header-content">
-    <div class="badge-top">CIUDAD DE CIUDAD_MAYUS Y REGION_MAYUS</div>
-    <h1>Trabajo en CIUDAD_NOMBRE</h1>
+    <div class="badge-top">CIUDAD DE IQUIQUE Y REGIÓN DE TARAPACÁ</div>
+    <h1>Trabajo en Iquique</h1>
     <p>Recuerda tener precaución en tus postulaciones</p>
   </div>
 </header>
@@ -82,7 +82,7 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 
   <div class="stats-bar">
     <span id="jobCount">Cargando vacantes...</span>
-    <span>📍 Ciudad de CIUDAD_NOMBRE, REGION_NOMBRE</span>
+    <span>📍 Ciudad de Iquique, Región de Tarapacá</span>
   </div>
 
   <div class="job-list" id="jobList">
@@ -94,18 +94,15 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 
   <footer>
     <div class="disclaimer"><strong>⚠️ Información Importante:</strong> Nosotros no gestionamos postulaciones, no recibimos currículums ni representamos a las empresas contratantes. Nunca transfieras dinero para participar en procesos de selección.</div>
-    <p>© Trabajo en CIUDAD_NOMBRE • Comunidad de empleo regional</p>
+    <p>© Trabajo en Iquique • Comunidad de empleo regional</p>
   </footer>
 </main>
 
 <script>
-// ==========================================
-// CONFIGURACIÓN DE LA CIUDAD ACTIVA
-// ==========================================
-const CACHE_KEY = 'ofertas_antofagasta_v1';
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLDzA5t4IGoTZ1y-IMNHBEzaypyj9lbHM_iG5ueu9CBtWpW3nujJ28sZtgvDj_Qz7zhA/exec";
-const CIUDAD_NOMBRE = "Antofagasta";
-const REGION_NOMBRE = "Región de Antofagasta";
+const CACHE_KEY = 'ofertas_iquique_v1';
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzP6TASOP0Bzn5beGgbSh9aWY-NauQ_G9bRpIHMO56lMS182kE741oRtG5l33INNWc/exec";
+const CIUDAD_NOMBRE = "Iquique";
+const REGION_NOMBRE = "Región de Tarapacá";
 
 const CAT_COLORS = {comercial:'#FF8A00',ventas:'#FF8A00',retail:'#FF8A00',tecnico:'#00CED1',técnico:'#00CED1',mantenimiento:'#00CED1',mantencion:'#00CED1',logistica:'#D4AC0D',logística:'#D4AC0D',bodega:'#D4AC0D',administrativo:'#1565D8',oficina:'#1565D8',rrhh:'#1565D8',salud:'#2EAF62',tens:'#2EAF62',construccion:'#FF0000',construcción:'#FF0000',educacion:'#9C27B0',educación:'#9C27B0',gastronomia:'#795548',gastronomía:'#795548',cocina:'#795548',otros:'#999999'};
 
@@ -113,6 +110,21 @@ let jobsData = [], activeCategory = 'all', searchQuery = '';
 
 function normalizeStr(str){
   return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+function formatFecha(f){
+  if (!f) return '';
+  const s = String(f).trim();
+  if (s.includes('GMT') || s.includes('00:00:00')) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const anio = d.getFullYear();
+      return `${dia}/${mes}/${anio}`;
+    }
+  }
+  return s.split('T')[0];
 }
 
 const $ = id => document.getElementById(id);
@@ -133,12 +145,30 @@ function renderJobs(){
   if (!list.length){ $('jobList').innerHTML = ''; $('noResults').style.display = 'block'; return; }
   $('noResults').style.display = 'none';
   $('jobList').innerHTML = list.map(j => {
-    const ok = j.url && String(j.url).startsWith('http');
+    let url = String(j.url || '').trim();
+    let cargo = String(j.cargo || '').trim();
+    let empresa = String(j.empresa || '').trim();
+    
+    // Auto-corrección si URL viene en empresa o cargo
+    if (!url.startsWith('http') && empresa.startsWith('http')) {
+      url = empresa;
+      empresa = 'Empresa Verificada';
+    }
+    if (!url.startsWith('http') && cargo.startsWith('http')) {
+      url = cargo;
+      cargo = 'Oferta de Empleo';
+    }
+    
+    // Limpieza de cargo
+    cargo = cargo.replace(/\(.*?[\$].*?\)/g, '').split('|')[0].trim();
+    const ok = url.startsWith('http');
+    const fechaLimpia = formatFecha(j.fecha);
+
     return `<div class="job-card">
-      <div class="card-top"><span class="cat-tag" style="background:${colorOf(j.cat)}">${esc(j.cat)}</span><span class="job-date">${esc(j.fecha)}</span></div>
-      <div class="job-title">${esc(j.cargo)}</div>
-      <div class="job-company"><span>🏢</span> ${esc(j.empresa || 'Empresa confidencial')} <span style="margin-left:6px;color:#64748B;">• 📍 Ciudad de ${esc(CIUDAD_NOMBRE)}</span></div>
-      ${ok ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" class="postular-btn">POSTULAR AL EMPLEO →</a>` : `<span class="postular-btn off">POSTULACIÓN NO DISPONIBLE</span>`}
+      <div class="card-top"><span class="cat-tag" style="background:${colorOf(j.cat)}">${esc(j.cat || 'Otros')}</span><span class="job-date">${esc(fechaLimpia)}</span></div>
+      <div class="job-title">${esc(cargo)}</div>
+      <div class="job-company"><span>🏢</span> ${esc(empresa || 'Empresa confidencial')} <span style="margin-left:6px;color:#64748B;">• 📍 Ciudad de ${esc(CIUDAD_NOMBRE)}</span></div>
+      ${ok ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="postular-btn">POSTULAR AL EMPLEO →</a>` : `<span class="postular-btn off">POSTULACIÓN NO DISPONIBLE</span>`}
     </div>`;
   }).join('');
 }
@@ -154,13 +184,13 @@ $('scrollLeft').onclick = () => sc.scrollBy({left:-220,behavior:'smooth'});
 $('scrollRight').onclick = () => sc.scrollBy({left:220,behavior:'smooth'});
 sc.addEventListener('wheel', e => { if (e.deltaY){ e.preventDefault(); sc.scrollLeft += e.deltaY; } }, {passive:false});
 
-// 1) Mostrar al instante lo guardado en el navegador (Caché local)
+// 1) Carga rápida desde caché de navegador
 try {
   const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
   if (Array.isArray(cached) && cached.length){ jobsData = cached; renderJobs(); }
 } catch(e){}
 
-// 2) Pedir los datos: archivo rápido (ofertas.json de GitHub Actions) y en vivo de Google Sheets
+// 2) Doble carga: ofertas.json estático y Apps Script en vivo
 let liveLoaded = false, failed = 0;
 function showError(){
   if (jobsData.length || failed < 2) return;
